@@ -1,11 +1,11 @@
 import csv
+import os
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
-import os
 import torch
-import torch.nn as nn
-import scienceplots
-from pathlib import Path
+from torch import nn
 
 plt.style.use(["science", "muted", "grid"])
 

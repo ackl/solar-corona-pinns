@@ -3,10 +3,10 @@ from util import (
     PINN,
     derivative,
     get_device,
-    train,
-    save_loss_history,
     plot_loss,
     plot_progression_1d,
+    save_loss_history,
+    train,
 )
 
 torch.set_default_device(get_device())
