@@ -1,0 +1,146 @@
+diff --git a/fastqslpy/cu/TraceBline.cu b/fastqslpy/cu/TraceBline.cu
+index a5f6494..9935d03 100644
+--- a/fastqslpy/cu/TraceBline.cu
++++ b/fastqslpy/cu/TraceBline.cu
+@@ -24,8 +24,12 @@ inline __device__ float dot3(float3 a, float3 b)
+ inline __device__ double ddot3(float3 a, float3 b)
+ {  return (double)a.x*b.x + (double)a.y*b.y + (double)a.z*b.z;}
+ 
+ inline __device__ float3 divide3(float3 a, float b)
+ {  return make_float3(a.x/b , a.y/b , a.z/b);}
++
++inline __device__ float wrapCoordinate(float value, int size)
++{  value = fmodf(value, (float)size);
++   return value < 0.0f ? value + size : value;}
+ 
+ inline __device__ float3 normalize3(float4 a)
+ {  return make_float3(a.x/a.w,  a.y/a.w,  a.z/a.w);}
+@@ -300,6 +304,6 @@ inline __device__ int checkFlag(int3 BshapeN3, float3 P_cur){
+     float *curB_x, float *curB_y,  float *curB_z,double *twist_this,bool *curB_flag,\
+     float *P_0, float *P_out, float *ncross_dir, float s_len, int *flag, double *len_this,\
+-    float direction){
++    float direction,bool periodic_horizontal){
+         unsigned long step_count = 0;
+         //unsigned long step_lim = (MAX_STEP_RATIO*(BshapeN3.x+BshapeN3.y+BshapeN3.z));
+         double len_lim = (MAX_STEP_RATIO*1.0*(BshapeN3.x+BshapeN3.y+BshapeN3.z));
+@@ -328,6 +332,12 @@ __device__ void TraceBline(float *Bx,float *By,float *Bz,int3 BshapeN3,\
+                 twist = twist+dot3(cur_P1,B_P1)/dot3(B_P1,B_P1)/4.0/M_PI*lenVec3(PP1-PP2);
+             }
+ 
++            // CFIT may use a horizontally periodic box. Wrap before FastQSL's
++            // existing boundary check so side crossings remain in the domain.
++            if (periodic_horizontal){
++                PP2.x = wrapCoordinate(PP2.x,BshapeN3.x);
++                PP2.y = wrapCoordinate(PP2.y,BshapeN3.y);
++            }
+             flag_this = checkFlag(BshapeN3,PP2);  // check status
+             if (flag_this>0){ // out of box
+                 len_record = len_record-lenVec3(PP1-PP2); // reverse step len
+@@ -388,7 +398,7 @@ __device__ void TraceBline(float *Bx,float *By,float *Bz,int3 BshapeN3,\
+         float *B_this_x,float *B_this_y, float *B_this_z, int *B_flag,\
+         float *B_start_x,float *B_start_y, float *B_start_z,\
+         float *B_end_x,float *B_end_y, float *B_end_z,\
+-        float *s_len,unsigned long long *N,double *LineLen){
++        float *s_len,unsigned long long *N,double *LineLen,bool *periodic_horizontal){
+             
+             unsigned long long x = blockIdx.x * blockDim.x + threadIdx.x;
+             unsigned long long y = blockIdx.y * blockDim.y + threadIdx.y; 
+@@ -416,7 +426,7 @@ __device__ void TraceBline(float *Bx,float *By,float *Bz,int3 BshapeN3,\
+                     P_0[2] = inp_z[Bline_ID]; 
+                     twist_this[0]=0;
+                     TraceBline(Bx,By,Bz,BshapeN3,curB_x,curB_y,curB_z,twist_this,curB_flag,\
+-                        P_0, P_out,inp_cross_dir, s_len[0], flag_cur,len_this,1.0); // forward and backward
++                        P_0, P_out,inp_cross_dir, s_len[0], flag_cur,len_this,1.0,periodic_horizontal[0]); // forward and backward
+                     B_end_x[Bline_ID] = Interp3d(Bx,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                     B_end_y[Bline_ID] = Interp3d(By,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                     B_end_z[Bline_ID] = Interp3d(Bz,BshapeN3,P_out[0],P_out[1],P_out[2]);
+@@ -432,7 +442,7 @@ __device__ void TraceBline(float *Bx,float *By,float *Bz,int3 BshapeN3,\
+                     P_0[2] = inp_z[Bline_ID]; 
+                     twist_this[0]=0;
+                     TraceBline(Bx,By,Bz,BshapeN3,curB_x,curB_y,curB_z,twist_this,curB_flag,\
+-                        P_0, P_out,inp_cross_dir, s_len[0], flag_cur,len_this,-1.0); // forward and backward
++                        P_0, P_out,inp_cross_dir, s_len[0], flag_cur,len_this,-1.0,periodic_horizontal[0]); // forward and backward
+                     B_start_x[Bline_ID] = Interp3d(Bx,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                     B_start_y[Bline_ID] = Interp3d(By,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                     B_start_z[Bline_ID] = Interp3d(Bz,BshapeN3,P_out[0],P_out[1],P_out[2]);
+diff --git a/fastqslpy/cu/TraceBlineAdaptive.cu b/fastqslpy/cu/TraceBlineAdaptive.cu
+index bc9b1b1..dc7fd78 100644
+--- a/fastqslpy/cu/TraceBlineAdaptive.cu
++++ b/fastqslpy/cu/TraceBlineAdaptive.cu
+@@ -27,8 +27,12 @@ inline __device__ float dot3(float3 a, float3 b)
+ inline __device__ double ddot3(float3 a, float3 b)
+ {  return (double)a.x*b.x + (double)a.y*b.y + (double)a.z*b.z;}
+ 
+ inline __device__ float3 divide3(float3 a, float b)
+ {  return make_float3(a.x/b , a.y/b , a.z/b);}
++
++inline __device__ float wrapCoordinate(float value, int size)
++{  value = fmodf(value, (float)size);
++   return value < 0.0f ? value + size : value;}
+ 
+ inline __device__ float3 normalize3(float4 a)
+ {  return make_float3(a.x/a.w,  a.y/a.w,  a.z/a.w);}
+@@ -334,6 +338,6 @@ __device__ void TraceBlineAdap(float *Bx,float *By,float *Bz,int3 BshapeN3,\
+     float *curB_x, float *curB_y,  float *curB_z,double *twist_this,bool *curB_flag,\
+     float *P_0, float *P_out, float *ncross_dir, float s_len, int *flag, double *len_this,\
+-    float direction,float tol_coef){
++    float direction,float tol_coef,bool periodic_horizontal){
+         unsigned long step_count = 0;
+         //unsigned long step_lim = (MAX_STEP_RATIO*(BshapeN3.x+BshapeN3.y+BshapeN3.z));
+         double len_lim = (MAX_STEP_RATIO*1.0*(BshapeN3.x+BshapeN3.y+BshapeN3.z));
+@@ -379,3 +383,9 @@ __device__ void TraceBlineAdap(float *Bx,float *By,float *Bz,int3 BshapeN3,\
++            // CFIT may use a horizontally periodic box. Wrap before FastQSL's
++            // existing boundary check so side crossings remain in the domain.
++            if (periodic_horizontal){
++                PP2.x = wrapCoordinate(PP2.x,BshapeN3.x);
++                PP2.y = wrapCoordinate(PP2.y,BshapeN3.y);
++            }
+             flag_this = checkFlag(BshapeN3,PP2);  // check status
+             if (flag_this>0){ // out of box
+                 len_record = len_record-lenVec3(PP1-PP2); // reverse step len
+@@ -434,7 +444,7 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
+     float *B_this_x,float *B_this_y, float *B_this_z, int *B_flag,\
+     float *B_start_x,float *B_start_y, float *B_start_z,\
+     float *B_end_x,float *B_end_y, float *B_end_z,\
+-    float *s_len,unsigned long long *N,double *LineLen,float *tol_coef){
++    float *s_len,unsigned long long *N,double *LineLen,float *tol_coef,bool *periodic_horizontal){
+         
+         unsigned long long x = blockIdx.x * blockDim.x + threadIdx.x;
+         unsigned long long y = blockIdx.y * blockDim.y + threadIdx.y; 
+@@ -463,6 +473,6 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
+                 twist_this[0]=0;
+                 TraceBlineAdap(Bx,By,Bz,BshapeN3,curB_x,curB_y,curB_z,twist_this,curB_flag,\
+-                    P_0, P_out,inp_cross_dir, s_len[0], flag_cur,len_this,1.0,tol_coef[0]); // forward and backward
++                    P_0, P_out,inp_cross_dir, s_len[0], flag_cur,len_this,1.0,tol_coef[0],periodic_horizontal[0]); // forward and backward
+                 B_end_x[Bline_ID] = Interp3d(Bx,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                 B_end_y[Bline_ID] = Interp3d(By,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                 B_end_z[Bline_ID] = Interp3d(Bz,BshapeN3,P_out[0],P_out[1],P_out[2]);
+@@ -479,6 +489,6 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
+                 twist_this[0]=0;
+                 TraceBlineAdap(Bx,By,Bz,BshapeN3,curB_x,curB_y,curB_z,twist_this,curB_flag,\
+-                    P_0, P_out,inp_cross_dir, s_len[0], flag_cur,len_this,-1.0,tol_coef[0]); // forward and backward
++                    P_0, P_out,inp_cross_dir, s_len[0], flag_cur,len_this,-1.0,tol_coef[0],periodic_horizontal[0]); // forward and backward
+                 B_start_x[Bline_ID] = Interp3d(Bx,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                 B_start_y[Bline_ID] = Interp3d(By,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                 B_start_z[Bline_ID] = Interp3d(Bz,BshapeN3,P_out[0],P_out[1],P_out[2]);
+diff --git a/fastqslpy/cu/TraceBlineAdaptive.cuh b/fastqslpy/cu/TraceBlineAdaptive.cuh
+index c2d5671..aca7180 100644
+--- a/fastqslpy/cu/TraceBlineAdaptive.cuh
++++ b/fastqslpy/cu/TraceBlineAdaptive.cuh
+@@ -61,7 +61,7 @@ inline __device__ int checkFlag(int3 BshapeN3, float3 P_cur);
+ __device__ void TraceBlineAdap(float *Bx,float *By,float *Bz,int3 BshapeN3,\
+     float *curB_x, float *curB_y,  float *curB_z,double *twist,bool *curB_flag,\
+     float *P_0, float *P_out, float *ncross_dir, float s_len, int *flag, double *len_this,\
+-    float direction,float tol_coef);
++    float direction,float tol_coef,bool periodic_horizontal);
+ 
+ __global__ void test_Interp3d(float *Arr,int *AShapeN, float *inPoint,float *res);
+ 
+@@ -76,6 +76,6 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
+     float *B_this_x,float *B_this_y, float *B_this_z, int *B_flag,\
+     float *B_start_x,float *B_start_y, float *B_start_z,\
+     float *B_end_x,float *B_end_y, float *B_end_z,\
+-    float *s_len,unsigned long long *N,double *LineLen,float *tol_coef);
++    float *s_len,unsigned long long *N,double *LineLen,float *tol_coef,bool *periodic_horizontal);
+ 
+ __global__ void TestMem(int *flag_out);

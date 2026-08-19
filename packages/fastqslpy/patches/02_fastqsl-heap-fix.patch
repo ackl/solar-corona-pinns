@@ -1,0 +1,168 @@
+diff --git a/fastqslpy/cu/TraceBline.cu b/fastqslpy/cu/TraceBline.cu
+index 3136c23..e310d3d 100644
+--- a/fastqslpy/cu/TraceBline.cu
++++ b/fastqslpy/cu/TraceBline.cu
+@@ -409,11 +409,11 @@ __device__ void TraceBline(float *Bx,float *By,float *Bz,int3 BshapeN3,\
+             idx_cur = (gridDim.x*blockDim.x) * y + x;                     
+             works_per_thread = N[0]/dim_all+1;
+             
+-            double *twist_this = new double[1];
+-            float *P_0 = new float[3];
+-            float *P_out = new float[3];
+-            int *flag_cur = new int[1];
+-            double *len_this = new double[1];
++            double twist_this = 0.0;
++            float P_0[3] = {0.0f, 0.0f, 0.0f};
++            float P_out[3] = {0.0f, 0.0f, 0.0f};
++            int flag_cur = 0;
++            double len_this = 0.0;
+     
+             for (line_idx=0; line_idx<works_per_thread; line_idx++){
+                 //Bline_ID = works_per_thread*idx_cur+line_idx;
+@@ -424,34 +424,34 @@ __device__ void TraceBline(float *Bx,float *By,float *Bz,int3 BshapeN3,\
+                     P_0[0] = inp_x[Bline_ID];
+                     P_0[1] = inp_y[Bline_ID];
+                     P_0[2] = inp_z[Bline_ID]; 
+-                    twist_this[0]=0;
+-                    TraceBline(Bx,By,Bz,BshapeN3,curB_x,curB_y,curB_z,twist_this,curB_flag,\
+-                        P_0, P_out,inp_cross_dir, s_len[0], flag_cur,len_this,1.0,periodic_horizontal[0]); // forward and backward
++                    twist_this=0;
++                    TraceBline(Bx,By,Bz,BshapeN3,curB_x,curB_y,curB_z,&twist_this,curB_flag,\
++                        P_0, P_out,inp_cross_dir, s_len[0], &flag_cur,&len_this,1.0,periodic_horizontal[0]); // forward and backward
+                     B_end_x[Bline_ID] = Interp3d(Bx,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                     B_end_y[Bline_ID] = Interp3d(By,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                     B_end_z[Bline_ID] = Interp3d(Bz,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                     end_x[Bline_ID] = P_out[0];
+                     end_y[Bline_ID] = P_out[1];
+                     end_z[Bline_ID] = P_out[2];
+-                    flag_end[Bline_ID] = flag_cur[0];
+-                    LineLen[Bline_ID] = len_this[0];
+-                    if (curB_flag[0]){twist[Bline_ID]=twist_this[0];}
++                    flag_end[Bline_ID] = flag_cur;
++                    LineLen[Bline_ID] = len_this;
++                    if (curB_flag[0]){twist[Bline_ID]=twist_this;}
+                     //backward
+                     P_0[0] = inp_x[Bline_ID];
+                     P_0[1] = inp_y[Bline_ID];
+                     P_0[2] = inp_z[Bline_ID]; 
+-                    twist_this[0]=0;
+-                    TraceBline(Bx,By,Bz,BshapeN3,curB_x,curB_y,curB_z,twist_this,curB_flag,\
+-                        P_0, P_out,inp_cross_dir, s_len[0], flag_cur,len_this,-1.0,periodic_horizontal[0]); // forward and backward
++                    twist_this=0;
++                    TraceBline(Bx,By,Bz,BshapeN3,curB_x,curB_y,curB_z,&twist_this,curB_flag,\
++                        P_0, P_out,inp_cross_dir, s_len[0], &flag_cur,&len_this,-1.0,periodic_horizontal[0]); // forward and backward
+                     B_start_x[Bline_ID] = Interp3d(Bx,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                     B_start_y[Bline_ID] = Interp3d(By,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                     B_start_z[Bline_ID] = Interp3d(Bz,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                     start_x[Bline_ID] = P_out[0];
+                     start_y[Bline_ID] = P_out[1];
+                     start_z[Bline_ID] = P_out[2];
+-                    flag_start[Bline_ID] = flag_cur[0];
+-                    LineLen[Bline_ID] = LineLen[Bline_ID] + len_this[0];
+-                    if (curB_flag[0]){twist[Bline_ID]=twist[Bline_ID]+twist_this[0];}
++                    flag_start[Bline_ID] = flag_cur;
++                    LineLen[Bline_ID] = LineLen[Bline_ID] + len_this;
++                    if (curB_flag[0]){twist[Bline_ID]=twist[Bline_ID]+twist_this;}
+                     //printf("[%d], %f, %f, %f\n", flag_out[idx_cur] ,out_x[idx_cur],out_y[idx_cur],out_z[idx_cur] );
+                     
+                     // record B in plane
+@@ -463,13 +463,8 @@ __device__ void TraceBline(float *Bx,float *By,float *Bz,int3 BshapeN3,\
+                       <lenVec3xyz(B_this_x[Bline_ID],B_this_y[Bline_ID],B_this_z[Bline_ID])){
+                         B_flag[Bline_ID] = 1;}
+                     else{B_flag[Bline_ID] = 0;}
+-                    //printf("flag***:  %d  %d\n",flag_cur[0],flag_start[Bline_ID]);
++                    //printf("flag***:  %d  %d\n",flag_cur,flag_start[Bline_ID]);
+                 }
+             }
+-            delete[] twist_this;
+-            delete[] P_0;
+-            delete[] P_out;
+-            delete[] flag_cur;
+-            delete[] len_this;
+     }
+     }
+\ No newline at end of file
+diff --git a/fastqslpy/cu/TraceBlineAdaptive.cu b/fastqslpy/cu/TraceBlineAdaptive.cu
+index 6da4126..36952a8 100644
+--- a/fastqslpy/cu/TraceBlineAdaptive.cu
++++ b/fastqslpy/cu/TraceBlineAdaptive.cu
+@@ -455,11 +455,11 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
+         idx_cur = (gridDim.x*blockDim.x) * y + x;                     
+         works_per_thread = N[0]/dim_all+1;
+         
+-        double *twist_this = new double[1];
+-        float *P_0 = new float[3];
+-        float *P_out = new float[3];
+-        int *flag_cur = new int[1];
+-        double *len_this = new double[1];
++        double twist_this = 0.0;
++        float P_0[3] = {0.0f, 0.0f, 0.0f};
++        float P_out[3] = {0.0f, 0.0f, 0.0f};
++        int flag_cur = 0;
++        double len_this = 0.0;
+ 
+         for (line_idx=0; line_idx<works_per_thread; line_idx++){
+             //Bline_ID = works_per_thread*idx_cur+line_idx;
+@@ -470,34 +470,34 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
+                 P_0[0] = inp_x[Bline_ID];
+                 P_0[1] = inp_y[Bline_ID];
+                 P_0[2] = inp_z[Bline_ID]; 
+-                twist_this[0]=0;
+-                TraceBlineAdap(Bx,By,Bz,BshapeN3,curB_x,curB_y,curB_z,twist_this,curB_flag,\
+-                    P_0, P_out,inp_cross_dir, s_len[0], flag_cur,len_this,1.0,tol_coef[0],periodic_horizontal[0]); // forward and backward
++                twist_this=0;
++                TraceBlineAdap(Bx,By,Bz,BshapeN3,curB_x,curB_y,curB_z,&twist_this,curB_flag,\
++                    P_0, P_out,inp_cross_dir, s_len[0], &flag_cur,&len_this,1.0,tol_coef[0],periodic_horizontal[0]); // forward and backward
+                 B_end_x[Bline_ID] = Interp3d(Bx,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                 B_end_y[Bline_ID] = Interp3d(By,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                 B_end_z[Bline_ID] = Interp3d(Bz,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                 end_x[Bline_ID] = P_out[0];
+                 end_y[Bline_ID] = P_out[1];
+                 end_z[Bline_ID] = P_out[2];
+-                flag_end[Bline_ID] = flag_cur[0];
+-                LineLen[Bline_ID] = len_this[0];
+-                if (curB_flag[0]){twist[Bline_ID]=twist_this[0];}
++                flag_end[Bline_ID] = flag_cur;
++                LineLen[Bline_ID] = len_this;
++                if (curB_flag[0]){twist[Bline_ID]=twist_this;}
+                 //backward
+                 P_0[0] = inp_x[Bline_ID];
+                 P_0[1] = inp_y[Bline_ID];
+                 P_0[2] = inp_z[Bline_ID]; 
+-                twist_this[0]=0;
+-                TraceBlineAdap(Bx,By,Bz,BshapeN3,curB_x,curB_y,curB_z,twist_this,curB_flag,\
+-                    P_0, P_out,inp_cross_dir, s_len[0], flag_cur,len_this,-1.0,tol_coef[0],periodic_horizontal[0]); // forward and backward
++                twist_this=0;
++                TraceBlineAdap(Bx,By,Bz,BshapeN3,curB_x,curB_y,curB_z,&twist_this,curB_flag,\
++                    P_0, P_out,inp_cross_dir, s_len[0], &flag_cur,&len_this,-1.0,tol_coef[0],periodic_horizontal[0]); // forward and backward
+                 B_start_x[Bline_ID] = Interp3d(Bx,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                 B_start_y[Bline_ID] = Interp3d(By,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                 B_start_z[Bline_ID] = Interp3d(Bz,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                 start_x[Bline_ID] = P_out[0];
+                 start_y[Bline_ID] = P_out[1];
+                 start_z[Bline_ID] = P_out[2];
+-                flag_start[Bline_ID] = flag_cur[0];
+-                LineLen[Bline_ID] = LineLen[Bline_ID] + len_this[0];
+-                if (curB_flag[0]){twist[Bline_ID]=twist[Bline_ID]+twist_this[0];}
++                flag_start[Bline_ID] = flag_cur;
++                LineLen[Bline_ID] = LineLen[Bline_ID] + len_this;
++                if (curB_flag[0]){twist[Bline_ID]=twist[Bline_ID]+twist_this;}
+                 //printf("[%d], %f, %f, %f\n", flag_out[idx_cur] ,out_x[idx_cur],out_y[idx_cur],out_z[idx_cur] );
+                 
+                 // record B in plane
+@@ -509,13 +509,8 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
+                   <lenVec3xyz(B_this_x[Bline_ID],B_this_y[Bline_ID],B_this_z[Bline_ID])){
+                     B_flag[Bline_ID] = 1;}
+                 else{B_flag[Bline_ID] = 0;}
+-                //printf("flag***:  %d  %d\n",flag_cur[0],flag_start[Bline_ID]);
++                //printf("flag***:  %d  %d\n",flag_cur,flag_start[Bline_ID]);
+             }
+         }
+-        delete[] twist_this;
+-        delete[] P_0;
+-        delete[] P_out;
+-        delete[] flag_cur;
+-        delete[] len_this;
+ }
+ }
+\ No newline at end of file

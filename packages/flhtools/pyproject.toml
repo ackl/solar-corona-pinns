@@ -1,0 +1,20 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "flhtools"
+version = "0.1.0"
+description = "Yeates field-line helicity tools built from the pinned third_party/flhtools checkout"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "scipy>=1.13.1",
+]
+license = "GPL-3.0-only"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/flhtools"]
+
+[tool.hatch.build.targets.wheel.hooks.custom]
+path = "build.py"

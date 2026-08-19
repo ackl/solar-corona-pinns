@@ -8,14 +8,6 @@ venv
 *.py[cod]
 data/
 runs*/
-!runs/
-runs/*
-!runs/analysis/
-runs/analysis/*
-!runs/analysis/low-lou-quality/
-runs/analysis/low-lou-quality/*
-!runs/analysis/low-lou-quality/quality.pdf
-!runs/analysis/low-lou-quality/quality.png
 tmp/
 .vendor/
 *.sif
@@ -26,9 +18,7 @@ tmp/
 .worktrees/
 .hermes/
 .env
-visualizer/node_modules/
-visualizer/dist/
-visualizer/*.tsbuildinfo
 *.fdb_latexmk
 *.fls
 *.texpadtmp
+*.synctex.gz

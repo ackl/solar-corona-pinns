@@ -522,7 +522,7 @@ wheels = [
 [[package]]
 name = "fastqslpy"
 version = "0.0.1"
-source = { git = "https://github.com/peijin94/FastQSL.git?rev=ef98356ce6615323da51f5a3d95bd88427f2a9ad#ef98356ce6615323da51f5a3d95bd88427f2a9ad" }
+source = { directory = "packages/fastqslpy" }
 
 [[package]]
 name = "fastrlock"
@@ -544,6 +544,23 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/7d/64/a02e6765de08964ed371eca577870593245afc9dfac16d037de7c10d18e6/filelock-3.32.3.tar.gz", hash = "sha256:0ffa185a3540854c95caa7fa76b76cb219d907415e2c5dc9af25fd970563487f", size = 218135, upload-time = "2026-08-13T16:00:05.577Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a7/8e/50f46a9c0ce8d2861a394c1347caae037ea0431d2f67d7feb151cbc4649a/filelock-3.32.3-py3-none-any.whl", hash = "sha256:7f0ca4bcc0e181c60dbbd8aa9ab5b120ebb99e4e064e83636340056f833a1f09", size = 98901, upload-time = "2026-08-13T16:00:03.974Z" },
+]
+
+[[package]]
+name = "flhtools"
+version = "0.1.0"
+source = { directory = "packages/flhtools" }
+dependencies = [
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "scipy", version = "1.18.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "numpy" },
+    { name = "scipy", specifier = ">=1.13.1" },
 ]
 
 [[package]]
@@ -2074,6 +2091,7 @@ euv = [
 grad-rubin = [
     { name = "cupy-cuda12x", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
     { name = "fastqslpy", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
+    { name = "flhtools" },
     { name = "matplotlib" },
     { name = "nf2" },
     { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
@@ -2082,6 +2100,7 @@ grad-rubin = [
     { name = "torch", version = "2.6.0+cu124", source = { registry = "https://download.pytorch.org/whl/cu124" }, marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
     { name = "torchvision", version = "0.21.0", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine != 'x86_64' or sys_platform != 'linux'" },
     { name = "torchvision", version = "0.21.0+cu124", source = { registry = "https://download.pytorch.org/whl/cu124" }, marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
+    { name = "ufit" },
 ]
 pinn = [
     { name = "matplotlib" },
@@ -2111,7 +2130,8 @@ euv = [
 ]
 grad-rubin = [
     { name = "cupy-cuda12x", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'", specifier = "==13.6.0" },
-    { name = "fastqslpy", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'", git = "https://github.com/peijin94/FastQSL.git?rev=ef98356ce6615323da51f5a3d95bd88427f2a9ad" },
+    { name = "fastqslpy", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'", directory = "packages/fastqslpy" },
+    { name = "flhtools", directory = "packages/flhtools" },
     { name = "matplotlib", specifier = "==3.11.0" },
     { name = "nf2", git = "https://github.com/ackl/NF2.git?branch=pot_field_greens_refactor" },
     { name = "scipy", marker = "python_full_version < '3.12'", specifier = "==1.17.1" },
@@ -2120,6 +2140,7 @@ grad-rubin = [
     { name = "torch", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'", specifier = "==2.6.0", index = "https://download.pytorch.org/whl/cu124" },
     { name = "torchvision", marker = "platform_machine != 'x86_64' or sys_platform != 'linux'", specifier = "==0.21.0" },
     { name = "torchvision", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'", specifier = "==0.21.0", index = "https://download.pytorch.org/whl/cu124" },
+    { name = "ufit", directory = "packages/ufit" },
 ]
 pinn = [
     { name = "matplotlib", specifier = "==3.11.0" },
@@ -2533,6 +2554,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/92/ff/5a28bdfd8c3ebec42
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e5/6d/b53b99a9f2766d095985947a5782f1702cabb129a34f7a802d7197af832f/tzdata-2026.3-py2.py3-none-any.whl", hash = "sha256:dc096730c87af6cab1b171c9d532be840741ff5d459015e7f6947bd7d7e54931", size = 348168, upload-time = "2026-07-10T08:50:36.46Z" },
 ]
+
+[[package]]
+name = "ufit"
+version = "0.1.0"
+source = { directory = "packages/ufit" }
 
 [[package]]
 name = "urllib3"

@@ -12,6 +12,7 @@ dependencies = [
 ]
 
 [project.scripts]
+solar-study = "studies.cli:main"
 nf2-sharp = "nlfff.pinn.run_nf2_sharp:main"
 grad-rubin = "nlfff.grad_rubin.run_grad_rubin:main"
 
@@ -21,6 +22,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["nlfff", "studies"]
+
+[tool.ruff]
+extend-exclude = [".ipynb_checkpoints", "runs", "video", "visualizer", "third_party"]
 
 [dependency-groups]
 dev = [
@@ -36,12 +40,14 @@ pinn = [
 grad-rubin = [
     "cupy-cuda12x==13.6.0; sys_platform == 'linux' and platform_machine == 'x86_64'",
     "fastqslpy==0.0.1; sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "flhtools",
     "matplotlib==3.11.0",
     "nf2==0.4.2",
     "scipy==1.17.1; python_version < '3.12'",
     "scipy==1.18.0; python_version >= '3.12'",
     "torch==2.6.0",
     "torchvision==0.21.0",
+    "ufit",
 ]
 euv = [
     "drms>=0.9.0",
@@ -49,8 +55,10 @@ euv = [
 ]
 
 [tool.uv.sources]
-fastqslpy = { git = "https://github.com/peijin94/FastQSL.git", rev = "ef98356ce6615323da51f5a3d95bd88427f2a9ad" }
+fastqslpy = { path = "packages/fastqslpy" }
+flhtools = { path = "packages/flhtools" }
 nf2 = { git = "https://github.com/ackl/NF2.git", branch = "pot_field_greens_refactor" }
+ufit = { path = "packages/ufit" }
 torch = [
     { index = "pytorch-cu124", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
 ]

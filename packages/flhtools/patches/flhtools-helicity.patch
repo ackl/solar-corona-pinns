@@ -1,0 +1,40 @@
+diff --git a/flhcart.py b/flhcart.py
+index b1360f0..a904916 100644
+--- a/flhcart.py
++++ b/flhcart.py
+@@ -5,7 +5,7 @@ anthony.yeates@durham.ac.uk
+ """
+ 
+ import numpy as np
+-from scipy.io import netcdf, FortranFile
++from scipy.io import netcdf_file, FortranFile
+ from scipy.interpolate import RegularGridInterpolator as rgi
+ from scipy.integrate import ode
+ from scipy.integrate import trapezoid as trapz
+@@ -30,14 +30,12 @@ class BField:
+         self.filename = filename
+        
+         # Compile the fortran code:
+-        os.system('gfortran -o fastfl '+codepath+'fastfl.f90 -O3 -ffast-math -funroll-loops --param max-unroll-times=5 -fopenmp')
+-        os.system('gfortran -o fastflh '+codepath+'fastflh.f90 -O3 -ffast-math -funroll-loops --param max-unroll-times=5 -fopenmp -g -fcheck=all -fbacktrace')
+         # os.system('gfortran -o fastflh fastflh.f90 -O0 -ffast-math -funroll-loops --param max-unroll-times=5 -g -fcheck=all -fbacktrace')     # for debugging
+ 
+         
+         # Open netcdf file:
+         try:
+-            fh = netcdf.netcdf_file(filename, 'r', mmap=False)
++            fh = netcdf_file(filename, 'r', mmap=False)
+         except OSError:
+             raise OSError('Problem with input file'+filename)
+         
+@@ -584,6 +585,10 @@ class BField:
+         imbalance = np.sum(bx0)*dy*dz - np.sum(bx1)*dy*dz + np.sum(by0)*dx*dz
+         imbalance = imbalance - np.sum(by1)*dx*dz + np.sum(bz0)*dx*dy - np.sum(bz1)*dx*dy
+         surfarea = 2*(ny-1)*(nz-1)*dy*dz + 2*(nx-1)*(nz-1)*dx*dz + 2*(nx-1)*(ny-1)*dx*dy
++        unsigned_flux = (np.sum(np.abs(bx0)) + np.sum(np.abs(bx1)))*dy*dz
++        unsigned_flux += (np.sum(np.abs(by0)) + np.sum(np.abs(by1)))*dx*dz
++        unsigned_flux += (np.sum(np.abs(bz0)) + np.sum(np.abs(bz1)))*dx*dy
++        self.boundary_flux_imbalance = np.abs(imbalance)/max(unsigned_flux, 1e-30)
+         bx0 -= imbalance/surfarea
+         bx1 += imbalance/surfarea
+         by0 -= imbalance/surfarea

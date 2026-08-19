@@ -1,0 +1,354 @@
+diff --git a/UFiT_Definitions_Fortran.F90 b/UFiT_Definitions_Fortran.F90
+index 2402432..961a899 100644
+--- a/UFiT_Definitions_Fortran.F90
++++ b/UFiT_Definitions_Fortran.F90
+@@ -19,6 +19,7 @@ module UFiT_Definitions_Fortran
+       INTEGER :: MAX_STEPS
+       INTEGER :: integration_scheme
+       REAL(num) :: step_size
++      REAL(num) :: weak_field_epsilon
+       LOGICAL :: read_command_file, print_devices
+       INTEGER :: sz_1, sz_2, sz_3, num_blocks
+       CHARACTER(len=str_mx) :: cmd_filename
+@@ -63,6 +64,8 @@ module UFiT_Definitions_Fortran
+       REAL(num), DIMENSION(:,:), ALLOCATABLE :: fieldline_user
+       INTEGER, DIMENSION(:), ALLOCATABLE :: fieldline_pts
+       INTEGER, DIMENSION(:), ALLOCATABLE :: fieldline_ptn
++      INTEGER, DIMENSION(:,:), ALLOCATABLE :: fieldline_status
++      INTEGER, DIMENSION(:,:), ALLOCATABLE :: fieldline_step_count
+       !Fieldlines are considered closed if both endpoints are within this constant *size(Z) of Z_min or *size(R) of R_min respectively
+       REAL(num) :: closed_fl_constant=0.1_num
+       REAL(num) :: closed_fl_size
+diff --git a/UFiT_Functions_Fortran.F90 b/UFiT_Functions_Fortran.F90
+index 3ad6be6..925a162 100644
+--- a/UFiT_Functions_Fortran.F90
++++ b/UFiT_Functions_Fortran.F90
+@@ -58,6 +58,7 @@ module UFiT_Functions_Fortran
+         MAX_STEPS = 5000
+         integration_scheme = 1
+         step_size = 0.005_num
++        weak_field_epsilon = 1.0E-8_num
+         cmd_filename = 'ufit.dat'   !trace options, if not specified by command line
+         B_filename   = 'ufit.bin'   !magnetic field
+         in_filename  = 'ufit.inp'   !field line start points
+@@ -4055,6 +4056,8 @@ module UFiT_Functions_Fortran
+       subroutine step_cartesian(idx_in, pos_in, pos_out, u_vec, v_vec, dl, &
+                                 keep_running, check_position, B_interp, B_gradB_interp)
+ 
++        USE, INTRINSIC :: IEEE_ARITHMETIC
++
+         INTEGER :: idx_in(9)
+         REAL(num) :: pos_in(3),pos_out(3),u_vec(3),v_vec(3),dl
+         LOGICAL :: keep_running
+@@ -4067,6 +4070,11 @@ module UFiT_Functions_Fortran
+         call check_position(pos_in,pos_0out,keep_running)
+         call B_interp(idx_in, pos_0out, B_curr)
+         mod_B = SQRT(B_curr(1)**2+B_curr(2)**2+B_curr(3)**2)
++        if ((.not. IEEE_IS_FINITE(mod_B)) .or. (mod_B .le. weak_field_epsilon)) then
++          pos_out(:) = IEEE_VALUE(pos_out(:), IEEE_QUIET_NAN)
++          keep_running = .false.
++          return
++        end if
+         dl_norm = dl/mod_B !Step size scaled by B
+         k_1(:) = B_curr(:)*dl_norm
+ 
+@@ -4079,6 +4087,8 @@ module UFiT_Functions_Fortran
+       subroutine step_cartesian_RK4(idx_in, pos_in, pos_out, u_vec, v_vec, dl, &
+                                 keep_running, check_position, B_interp, B_gradB_interp)
+ 
++        USE, INTRINSIC :: IEEE_ARITHMETIC
++
+         INTEGER :: idx_in(9)
+         REAL(num) :: pos_in(3),pos_out(3),u_vec(3),v_vec(3),dl
+         LOGICAL :: keep_running
+@@ -4093,6 +4103,11 @@ module UFiT_Functions_Fortran
+         call check_position(pos_in,pos_0out,keep_running)
+         call B_interp(idx_in, pos_0out, B_curr)
+         mod_B = SQRT(B_curr(1)**2+B_curr(2)**2+B_curr(3)**2)
++        if ((.not. IEEE_IS_FINITE(mod_B)) .or. (mod_B .le. weak_field_epsilon)) then
++          pos_out(:) = IEEE_VALUE(pos_out(:), IEEE_QUIET_NAN)
++          keep_running = .false.
++          return
++        end if
+         dl_norm = dl/mod_B !Step size scaled by B
+         k_1(:) = B_curr(:)*dl_norm
+ 
+@@ -4100,6 +4115,11 @@ module UFiT_Functions_Fortran
+         call check_position(pos_1in,pos_1out,keep_running)
+         call B_interp(idx_in, pos_1out, B_curr)
+         mod_B = SQRT(B_curr(1)**2+B_curr(2)**2+B_curr(3)**2)
++        if ((.not. IEEE_IS_FINITE(mod_B)) .or. (mod_B .le. weak_field_epsilon)) then
++          pos_out(:) = IEEE_VALUE(pos_out(:), IEEE_QUIET_NAN)
++          keep_running = .false.
++          return
++        end if
+         dl_norm = dl/mod_B !Step size scaled by B
+         k_2(:) = B_curr(:)*dl_norm
+ 
+@@ -4107,6 +4127,11 @@ module UFiT_Functions_Fortran
+         call check_position(pos_2in,pos_2out,keep_running)
+         call B_interp(idx_in, pos_2out, B_curr)
+         mod_B = SQRT(B_curr(1)**2+B_curr(2)**2+B_curr(3)**2)
++        if ((.not. IEEE_IS_FINITE(mod_B)) .or. (mod_B .le. weak_field_epsilon)) then
++          pos_out(:) = IEEE_VALUE(pos_out(:), IEEE_QUIET_NAN)
++          keep_running = .false.
++          return
++        end if
+         dl_norm = dl/mod_B !Step size scaled by B
+         k_3(:) = B_curr(:)*dl_norm
+ 
+@@ -4114,6 +4139,11 @@ module UFiT_Functions_Fortran
+         call check_position(pos_3in,pos_3out,keep_running)
+         call B_interp(idx_in, pos_3out, B_curr)
+         mod_B = SQRT(B_curr(1)**2+B_curr(2)**2+B_curr(3)**2)
++        if ((.not. IEEE_IS_FINITE(mod_B)) .or. (mod_B .le. weak_field_epsilon)) then
++          pos_out(:) = IEEE_VALUE(pos_out(:), IEEE_QUIET_NAN)
++          keep_running = .false.
++          return
++        end if
+         dl_norm = dl/mod_B !Step size scaled by B
+         k_4(:) = B_curr(:)*dl_norm
+ 
+@@ -4286,6 +4316,7 @@ module UFiT_Functions_Fortran
+                                  B_gradB_interp,single_step,final_step,fl_classification, &
+                                  pos_start,idx_t,pos_endpoints,pos_Q,pos_fieldline, &
+                                  pos_step_start,pos_step_total,dl)
++        USE, INTRINSIC :: IEEE_ARITHMETIC
+       !Trace fieldlines, keep only endpoints
+ 
+         procedure(check_position_iface) :: check_position
+@@ -4321,17 +4352,38 @@ module UFiT_Functions_Fortran
+           pos_curr(:) = pos_next(:)
+           call single_step(idx_in, pos_curr(:), pos_next(:), u_0, v_0, -dl, &
+                                keep_running, check_position, B_interp, B_gradB_interp)
++          if (ALL(IEEE_IS_FINITE(pos_next)) .and. &
++              (ABS(pos_next(3)-grid3min) .le. EPS)) then
++            fieldline_status(1,idx_t) = 1
++            keep_running = .false.
++          end if
+           step_num = step_num + 1
+         end do
+-        if (.not. keep_running) then
+-          call check_position(pos_curr(:),pos_out,keep_running)
+-          call B_interp(idx_in, pos_out, B_out)
+-          mod_Bout = SQRT(B_out(1)**2+B_out(2)**2+B_out(3)**2)
+-          B_out(:) = -B_out(:)*dl/mod_Bout
++        fieldline_step_count(1,idx_t) = MIN(step_num-1,MAX_STEPS)
++        if (.not. ALL(IEEE_IS_FINITE(pos_next))) then
++          fieldline_status(1,idx_t) = 3
++          pos_next(:) = pos_curr(:)
++        else if (fieldline_status(1,idx_t) .eq. 1) then
++          continue
++        else if (.not. keep_running) then
++          B_out(:) = pos_next(:) - pos_curr(:)
++          if (periodic_X .and. (B_out(1) .gt. 0.5_num*coord_width(1))) &
++            B_out(1) = B_out(1) - coord_width(1)
++          if (periodic_X .and. (B_out(1) .lt. -0.5_num*coord_width(1))) &
++            B_out(1) = B_out(1) + coord_width(1)
++          if (periodic_Y .and. (B_out(2) .gt. 0.5_num*coord_width(2))) &
++            B_out(2) = B_out(2) - coord_width(2)
++          if (periodic_Y .and. (B_out(2) .lt. -0.5_num*coord_width(2))) &
++            B_out(2) = B_out(2) + coord_width(2)
+           call intercept_boundary(pos_curr(:),B_out,last_stepsize)
+-          call final_step(idx_in, pos_curr(:), pos_next(:), u_0, v_0, &
+-                              -last_stepsize*dl*0.9999_num, keep_running, check_position, &
+-                              B_interp, B_gradB_interp)
++          pos_next(:) = pos_curr(:) + last_stepsize*B_out(:)
++          call check_position(pos_next(:),pos_out,keep_running)
++          pos_next(:) = pos_out(:)
++          if (pos_next(3) .le. grid3min + ABS(dl)*1.0E-3_num) then
++            fieldline_status(1,idx_t) = 1
++          else
++            fieldline_status(1,idx_t) = 2
++          end if
+         end if
+         pos_endpoints(1:3,idx_t) = pos_next(:)
+ 
+@@ -4343,17 +4395,38 @@ module UFiT_Functions_Fortran
+           pos_curr(:) = pos_next(:)
+           call single_step(idx_in, pos_curr(:), pos_next(:), u_0, v_0, &
+                                dl, keep_running, check_position, B_interp, B_gradB_interp)
++          if (ALL(IEEE_IS_FINITE(pos_next)) .and. &
++              (ABS(pos_next(3)-grid3min) .le. EPS)) then
++            fieldline_status(2,idx_t) = 1
++            keep_running = .false.
++          end if
+           step_num = step_num + 1
+         end do
+-        if (.not. keep_running) then
+-          call check_position(pos_curr(:),pos_out,keep_running)
+-          call B_interp(idx_in, pos_out, B_out)
+-          mod_Bout = SQRT(B_out(1)**2+B_out(2)**2+B_out(3)**2)
+-          B_out(:) = B_out(:)*dl/mod_Bout
++        fieldline_step_count(2,idx_t) = MIN(step_num-1,MAX_STEPS)
++        if (.not. ALL(IEEE_IS_FINITE(pos_next))) then
++          fieldline_status(2,idx_t) = 3
++          pos_next(:) = pos_curr(:)
++        else if (fieldline_status(2,idx_t) .eq. 1) then
++          continue
++        else if (.not. keep_running) then
++          B_out(:) = pos_next(:) - pos_curr(:)
++          if (periodic_X .and. (B_out(1) .gt. 0.5_num*coord_width(1))) &
++            B_out(1) = B_out(1) - coord_width(1)
++          if (periodic_X .and. (B_out(1) .lt. -0.5_num*coord_width(1))) &
++            B_out(1) = B_out(1) + coord_width(1)
++          if (periodic_Y .and. (B_out(2) .gt. 0.5_num*coord_width(2))) &
++            B_out(2) = B_out(2) - coord_width(2)
++          if (periodic_Y .and. (B_out(2) .lt. -0.5_num*coord_width(2))) &
++            B_out(2) = B_out(2) + coord_width(2)
+           call intercept_boundary(pos_curr(:),B_out,last_stepsize)
+-          call final_step(idx_in,pos_curr(:), pos_next(:), u_0, v_0, &
+-                               last_stepsize*dl*0.9999_num, keep_running, check_position, &
+-                               B_interp, B_gradB_interp)
++          pos_next(:) = pos_curr(:) + last_stepsize*B_out(:)
++          call check_position(pos_next(:),pos_out,keep_running)
++          pos_next(:) = pos_out(:)
++          if (pos_next(3) .le. grid3min + ABS(dl)*1.0E-3_num) then
++            fieldline_status(2,idx_t) = 1
++          else
++            fieldline_status(2,idx_t) = 2
++          end if
+         end if
+         pos_endpoints(4:6,idx_t) = pos_next(:)
+ 
+@@ -6199,6 +6272,10 @@ module UFiT_Functions_Fortran
+         end if
+ 
+         ALLOCATE(fieldline_endpoints(6,numin_tot))
++        ALLOCATE(fieldline_status(2,numin_tot))
++        ALLOCATE(fieldline_step_count(2,numin_tot))
++        fieldline_status(:,:) = 0
++        fieldline_step_count(:,:) = 0
+         if (save_fieldlines) then
+           ALLOCATE(fieldline_allpos(3,2*MAX_STEPS+1,numin_tot))
+           ALLOCATE(fieldline_pts(numin_tot))
+@@ -6539,6 +6616,8 @@ module UFiT_Functions_Fortran
+         IF (ALLOCATED(fieldline_user)) DEALLOCATE(fieldline_user)
+         IF (ALLOCATED(fieldline_pts)) DEALLOCATE(fieldline_pts)
+         IF (ALLOCATED(fieldline_ptn)) DEALLOCATE(fieldline_ptn)
++        IF (ALLOCATED(fieldline_status)) DEALLOCATE(fieldline_status)
++        IF (ALLOCATED(fieldline_step_count)) DEALLOCATE(fieldline_step_count)
+ 
+         if (user_defined) then
+           call cleanup_user_defined
+diff --git a/UFiT_Functions_Python.py b/UFiT_Functions_Python.py
+index de038c4..88ae5ae 100644
+--- a/UFiT_Functions_Python.py
++++ b/UFiT_Functions_Python.py
+@@ -117,6 +117,7 @@ class UFiT_call_input:	#input to call UFiT from Python
+ 		self.MAX_STEPS=5000
+ 		self.integration_scheme=1
+ 		self.step_size=0.005
++		self.weak_field_epsilon=1e-8
+ 		self.B_filename="ufit.bin"
+ 		self.out_filename="ufit.flf"
+ 		self.load_B=False
+@@ -168,6 +169,8 @@ class UFiT_call_input:	#input to call UFiT from Python
+ 		self.fieldline_ptn = np.zeros((1),dtype="int32")
+ 		self.Q_out = np.zeros((2),dtype="double")
+ 		self.fieldline_connection = np.zeros((2),dtype="b")
++		self.fieldline_status = np.zeros((2,2),dtype="int32")
++		self.fieldline_step_count = np.zeros((2,2),dtype="int32")
+ 		self.num_ud_variables=1
+ 		self.fieldline_user = np.zeros((1,1),dtype="double")
+ 
+@@ -205,6 +208,7 @@ def call_UFiT(shared_lib_path,UFiT_input):
+ 				ctypes.c_int, 
+ 				ctypes.c_int, 
+ 				ctypes.c_int, 
++				ctypes.c_double,
+ 				ctypes.c_double, 
+ 				type(b'A'), 
+ 				type(b'A'), 
+@@ -258,6 +262,8 @@ def call_UFiT(shared_lib_path,UFiT_input):
+ 				ctypes.POINTER(ctypes.c_double),
+ 				ctypes.POINTER(ctypes.c_byte),
+ 				ctypes.POINTER(ctypes.c_double)
++				,ctypes.POINTER(ctypes.c_int)
++				,ctypes.POINTER(ctypes.c_int)
+ 				]
+ 
+ 	if UFiT_input.grid_regular==True or UFiT_input.grid_regular==1:
+@@ -319,6 +325,8 @@ def call_UFiT(shared_lib_path,UFiT_input):
+ 		UFiT_input.numin3=len(UFiT_input.coord3)
+ 		UFiT_input.numin_tot=UFiT_input.numin1*UFiT_input.numin2*UFiT_input.numin3
+ 	UFiT_input.endpoints = np.zeros((6,UFiT_input.numin_tot),dtype="double")
++	UFiT_input.fieldline_status = np.zeros((2,UFiT_input.numin_tot),dtype="int32")
++	UFiT_input.fieldline_step_count = np.zeros((2,UFiT_input.numin_tot),dtype="int32")
+ 	if UFiT_input.save_fieldlines:
+ 		UFiT_input.fieldline_allpos = np.zeros((UFiT_input.numin_tot,2*UFiT_input.MAX_STEPS+1,3),dtype="double")
+ 		UFiT_input.fieldline_pts = np.zeros((UFiT_input.numin_tot),dtype="int32")
+@@ -353,6 +361,7 @@ def call_UFiT(shared_lib_path,UFiT_input):
+ 					ctypes.c_int(UFiT_input.MAX_STEPS), 
+ 					ctypes.c_int(UFiT_input.integration_scheme), 
+ 					ctypes.c_double(UFiT_input.step_size), 
++					ctypes.c_double(UFiT_input.weak_field_epsilon),
+ 					convert_string(UFiT_input.B_filename,UFiT_input.str_mx), 
+ 					convert_string(UFiT_input.out_filename,UFiT_input.str_mx), 
+ 					ctypes.c_int(bool_to_int(UFiT_input.load_B)), 
+@@ -405,6 +414,8 @@ def call_UFiT(shared_lib_path,UFiT_input):
+ 					UFiT_input.Q_out.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+ 					UFiT_input.fieldline_connection.ctypes.data_as(ctypes.POINTER(ctypes.c_byte)),
+ 					UFiT_input.fieldline_user.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
++					UFiT_input.fieldline_status.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
++					UFiT_input.fieldline_step_count.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
+ 					)
+ 
+ 	return UFiT_input
+diff --git a/UFiT_Python_Callable.F90 b/UFiT_Python_Callable.F90
+index 3ad9a7d..48077a7 100644
+--- a/UFiT_Python_Callable.F90
++++ b/UFiT_Python_Callable.F90
+@@ -23,6 +23,7 @@ subroutine UFiT_Python_Callable(IN_geometry, &
+                                 IN_MAX_STEPS, &
+                                 IN_integration_scheme, &
+                                 IN_step_size, &
++                                IN_weak_field_epsilon, &
+                                 IN_B_filename, &
+                                 IN_out_filename, &
+                                 IN_load_B, &
+@@ -74,7 +75,9 @@ subroutine UFiT_Python_Callable(IN_geometry, &
+                                 OUT_fieldline_ptn, &
+                                 OUT_fieldline_Q, &
+                                 OUT_fieldline_connection, &
+-                                OUT_fieldline_user)  bind(c, name='UFiT_Python_Callable')
++                                OUT_fieldline_user, &
++                                OUT_fieldline_status, &
++                                OUT_fieldline_step_count)  bind(c, name='UFiT_Python_Callable')
+ 
+       use iso_c_binding
+       use UFiT_Functions_Fortran
+@@ -102,6 +105,7 @@ subroutine UFiT_Python_Callable(IN_geometry, &
+       integer(c_int), intent(in), value :: IN_MAX_STEPS
+       integer(c_int), intent(in), value :: IN_integration_scheme
+       REAL(c_double), intent(in), value :: IN_step_size
++      REAL(c_double), intent(in), value :: IN_weak_field_epsilon
+       CHARACTER(kind=C_CHAR), intent(in) ::  IN_B_filename(str_mx)
+       CHARACTER(kind=C_CHAR), intent(in) ::  IN_out_filename(str_mx)
+       integer(c_int), intent(in), value :: IN_load_B
+@@ -154,6 +158,8 @@ subroutine UFiT_Python_Callable(IN_geometry, &
+       REAL(c_double), intent(out) :: OUT_fieldline_Q(IN_numin_tot)
+       BYTE, intent(out) :: OUT_fieldline_connection(IN_numin_tot)
+       REAL(c_double), intent(out) :: OUT_fieldline_user(1,IN_numin_tot)
++      integer(c_int), intent(out) :: OUT_fieldline_status(2,IN_numin_tot)
++      integer(c_int), intent(out) :: OUT_fieldline_step_count(2,IN_numin_tot)
+ 
+ 
+       geometry = IN_geometry
+@@ -178,6 +184,7 @@ subroutine UFiT_Python_Callable(IN_geometry, &
+       MAX_STEPS = IN_MAX_STEPS
+       integration_scheme = IN_integration_scheme
+       step_size = IN_step_size
++      weak_field_epsilon = IN_weak_field_epsilon
+       B_filename = TRIM(transfer(IN_B_filename(1:str_mx), B_filename))
+       out_filename = TRIM(transfer(IN_out_filename(1:str_mx), out_filename))
+ 
+@@ -292,6 +299,8 @@ subroutine UFiT_Python_Callable(IN_geometry, &
+         if (user_defined) then
+           OUT_fieldline_user(:,:) = fieldline_user(:,:)
+         end if
++        OUT_fieldline_status(:,:) = fieldline_status(:,:)
++        OUT_fieldline_step_count(:,:) = fieldline_step_count(:,:)
+       end if
+ 
+       call cleanup

@@ -4,8 +4,9 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+import scienceplots  # noqa: F401  # Registers Matplotlib's science styles.
 import torch
-from torch import nn
+import torch.nn as nn
 
 plt.style.use(["science", "muted", "grid"])
 
